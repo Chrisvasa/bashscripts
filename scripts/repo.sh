@@ -11,6 +11,9 @@ REPO_SECRET=""
 # Check if username and token is set in .bashrc || .bash_profile || .zshrc
 if [ -z "$GITHUB_USERNAME" ] || [ -z "$GITHUB_TOKEN" ]; then
   echo "Please set USERNAME and TOKEN in environment variables."
+  echo "For example, add the following lines to your ~/.bashrc, ~/.bash_profile, or ~/zshrc"
+  echo "export GITHUB_USERNAME='username_here'"
+  echo "export GITHUB_TOKEN='token_here'"
   exit 1;
 fi
 
@@ -37,7 +40,14 @@ while true; do
 done
 
 # Create GitHub repository
-RESPONSE=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/user/repos -d "{\"name\":\"$REPO_NAME\", \"private\": $REPO_PRIVATE}")
+RESPONSE=$(curl -s -o respponse.json -w "%{http_code}" -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/user/repos -d "{\"name\":\"$REPO_NAME\", \"private\": $REPO_PRIVATE}")
+
+# Check if the repository was successfully created
+if [ "$RESPONSE" != "201" ]; then
+  echo "Failed to create Github repository: $(cat response.json)"
+  rm response.json
+  exit 1
+fi 
 
 # What authentication to use locally
 while true; do
@@ -53,16 +63,19 @@ while true; do
   esac
 done
 
-# Check if the repository was successfully created
-if [ "$REPO_URL" == "null" ]; then
-  echo "Failed to create GitHub repository"
-  echo "$RESPONSE"
-  exit 1
-fi
-
-# Create project directory
+# Check if a REPO_DIR was given as parameter
 if [ -z "$REPO_DIR" ]; then
   REPO_DIR="$HOME/dev"
+fi
+
+# Check if directory already exists or check if user wants to overwrite existing dir
+if [ -d "$REPO_DIR/$REPO_NAME" ]; then
+  read -p "Directory $REPO_DIR/$REPO_NAME already exists. Overwrite? (y/n) " overwrite
+  case $overwrite in
+  [yY] ) rm -rf "$REPO_DIR/$REPO_NAME";;
+  [nN] ) echo "Using existing directory."; break;;
+  * ) echo "Invalid option"; exit 1;;
+  esac
 fi
 
 mkdir "$REPO_DIR/$REPO_NAME"
