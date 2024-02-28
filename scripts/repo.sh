@@ -6,7 +6,6 @@ GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 REPO_NAME="$1"
 REPO_DIR="$2"
 REPO_PRIVATE="TRUE"
-REPO_SECRET=""
 
 # Check if username and token is set in .bashrc || .bash_profile || .zshrc
 if [ -z "$GITHUB_USERNAME" ] || [ -z "$GITHUB_TOKEN" ]; then
@@ -40,28 +39,16 @@ while true; do
 done
 
 # Create GitHub repository
-RESPONSE=$(curl -s -o respponse.json -w "%{http_code}" -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/user/repos -d "{\"name\":\"$REPO_NAME\", \"private\": $REPO_PRIVATE}")
+RESPONSE=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" -d "{\"name\":\"$REPO_NAME\", \"private\": $REPO_PRIVATE}" https://api.github.com/user/repos)
+REPO_URL=$(echo "$RESPONSE" | jq -r .ssh_url)
 
-# Check if the repository was successfully created
-if [ "$RESPONSE" != "201" ]; then
-  echo "Failed to create Github repository: $(cat response.json)"
-  rm response.json
+if [ "$REPO_URL" == "null" ]; then
+  echo "Failed to create GitHub repository or extract URL."
+  echo "$RESPONSE"
   exit 1
-fi 
-
-# What authentication to use locally
-while true; do
-  read -p "Use SSH authentication? (y/n) " ssh
-  case $ssh in
-    [yY] ) REPO_URL=$(echo "$RESPONSE" | jq -r .ssh_url)
-      REPO_SECRET=$REPO_URL
-      break;;
-    [nN] ) REPO_URL=$(echo "$RESPONSE" | jq -r .html_url) 
-      # Insert the token into the URL
-      REPO_SECRET="${REPO_URL:0:8}$GITHUB_USERNAME:$GITHUB_TOKEN@${REPO_URL:8}"
-      break;;
-  esac
-done
+else
+  echo "Repository created successfully: $REPO_URL"
+fi
 
 # Check if a REPO_DIR was given as parameter
 if [ -z "$REPO_DIR" ]; then
@@ -80,7 +67,6 @@ fi
 
 mkdir "$REPO_DIR/$REPO_NAME"
 cd "$REPO_DIR/$REPO_NAME" || exit
-
 
 # Initialize git and create basic files
 git init
@@ -102,7 +88,7 @@ git add .
 git commit -m "First commit"
 
 # Add remote and push to GitHub
-git remote add origin "$REPO_SECRET"
+git remote add origin "$REPO_URL"
 git push -u origin main
 
 echo "Repository created at $REPO_URL"
