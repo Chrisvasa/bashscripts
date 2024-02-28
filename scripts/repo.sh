@@ -43,7 +43,7 @@ RESPONSE=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" -d "{\"name\":\"$RE
 REPO_URL=$(echo "$RESPONSE" | jq -r .ssh_url)
 
 if [ "$REPO_URL" == "null" ]; then
-  echo "Failed to create GitHub repository or extract URL."
+  echo "Failed to create GitHub repository."
   echo "$RESPONSE"
   exit 1
 else
