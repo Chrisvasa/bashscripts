@@ -10,3 +10,8 @@ function create() {
     /usr/bin/REPO.sh "$1" && cd "/home/user/dev/$1"
 }
 ```
+```
+  echo "For example, add the following lines to your ~/.bashrc, ~/.bash_profile, or ~/zshrc"
+  echo "export GITHUB_USERNAME='username_here'"
+  echo "export GITHUB_TOKEN='token_here'"
+```
